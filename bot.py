@@ -27,8 +27,9 @@ ALLOWED_USER_IDS = {
     int(uid) for uid in os.environ["ALLOWED_USER_IDS"].replace(",", " ").split()
 }
 
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:1234/v1")
+# Leave empty to auto-detect the model currently loaded in LM Studio.
+LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")  # local servers usually ignore it
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "You are a helpful assistant.")
 MAX_HISTORY_MESSAGES = int(os.getenv("MAX_HISTORY_MESSAGES", "40"))
@@ -49,25 +50,51 @@ histories: dict[int, list[dict[str, str]]] = {}
 
 def is_allowed(update: Update) -> bool:
     user = update.effective_user
-    allowed = user is not None and user.id in ALLOWED_USER_IDS
+    chat = update.effective_chat
+    # Only the allowlisted user, and only in a one-on-one chat — the bot stays
+    # silent in groups/channels even if someone manages to add it to one.
+    allowed = (
+        user is not None
+        and user.id in ALLOWED_USER_IDS
+        and chat is not None
+        and chat.type == chat.PRIVATE
+    )
     if not allowed and user is not None:
-        log.warning("Ignoring message from unauthorized user %s (%s)",
-                    user.id, user.username)
+        log.warning("Ignoring message from user %s (%s) in %s chat",
+                    user.id, user.username, chat.type if chat else "?")
     return allowed
 
 
+async def resolve_model(client: httpx.AsyncClient) -> str:
+    """Return the configured model, or the one currently loaded in LM Studio."""
+    global LLM_MODEL
+    if LLM_MODEL:
+        return LLM_MODEL
+    resp = await client.get(f"{LLM_BASE_URL.rstrip('/')}/models")
+    resp.raise_for_status()
+    models = resp.json().get("data", [])
+    if not models:
+        raise RuntimeError(
+            "No model loaded in the LLM server — load one in LM Studio first."
+        )
+    LLM_MODEL = models[0]["id"]
+    log.info("Auto-detected model: %s", LLM_MODEL)
+    return LLM_MODEL
+
+
 async def query_llm(messages: list[dict[str, str]]) -> str:
-    payload = {
-        "model": LLM_MODEL,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, *messages],
-        "stream": False,
-    }
     headers = {"Authorization": f"Bearer {LLM_API_KEY}"}
-    async with httpx.AsyncClient(timeout=LLM_TIMEOUT_SECONDS) as client:
+    async with httpx.AsyncClient(
+        timeout=LLM_TIMEOUT_SECONDS, headers=headers
+    ) as client:
+        payload = {
+            "model": await resolve_model(client),
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT}, *messages],
+            "stream": False,
+        }
         resp = await client.post(
             f"{LLM_BASE_URL.rstrip('/')}/chat/completions",
             json=payload,
-            headers=headers,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -91,8 +118,9 @@ def split_message(text: str, limit: int = TELEGRAM_MESSAGE_LIMIT) -> list[str]:
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not is_allowed(update):
         return
+    model = LLM_MODEL or "auto-detected from LM Studio"
     await update.message.reply_text(
-        f"Hi! I'm your local LLM ({LLM_MODEL}). Send me a message.\n"
+        f"Hi! I'm your local LLM ({model}). Send me a message.\n"
         "Commands: /reset — clear conversation history"
     )
 
@@ -140,12 +168,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 def main() -> None:
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("reset", cmd_reset))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    private = filters.ChatType.PRIVATE
+    app.add_handler(CommandHandler("start", cmd_start, filters=private))
+    app.add_handler(CommandHandler("reset", cmd_reset, filters=private))
+    app.add_handler(
+        MessageHandler(private & filters.TEXT & ~filters.COMMAND, handle_message)
+    )
 
     log.info("Bot starting. Allowed users: %s. LLM: %s at %s",
-             sorted(ALLOWED_USER_IDS), LLM_MODEL, LLM_BASE_URL)
+             sorted(ALLOWED_USER_IDS), LLM_MODEL or "(auto)", LLM_BASE_URL)
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

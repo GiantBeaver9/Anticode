@@ -1,16 +1,19 @@
 # Personal Telegram → Local LLM Bot
 
 A tiny Telegram bot that runs on your PC and lets you chat with your local LLM
-(Ollama, LM Studio, llama.cpp server — anything with an OpenAI-compatible API)
-from anywhere. It **only responds to your Telegram account**; everyone else is
-silently ignored.
+(LM Studio by default; Ollama, llama.cpp server, or anything with an
+OpenAI-compatible API also works) from anywhere. It **only responds to your
+Telegram account**; everyone else is silently ignored.
 
 It uses long polling, so it works behind your home router with **no port
 forwarding, public IP, or webhook setup**.
 
 ## Features
 
-- 🔒 Locked to your Telegram user ID (supports a comma-separated allowlist)
+- 🔒 Locked to your Telegram user ID, and only in private chats — it stays
+  silent in groups even if someone adds it to one
+- 🎛️ Auto-detects whatever model you have loaded in LM Studio (no config
+  change needed when you swap models)
 - 🧠 Per-chat conversation memory with `/reset` to clear it
 - ✂️ Automatically splits replies longer than Telegram's 4096-character limit
 - ⌨️ Shows "typing…" while the model is thinking
@@ -32,16 +35,20 @@ bot can't be added to groups.
 Message [@userinfobot](https://t.me/userinfobot) — it replies with your numeric
 ID (e.g. `123456789`). This is what locks the bot to you.
 
-### 3. Start your local LLM
+### 3. Start LM Studio's local server
 
-For Ollama:
+1. In LM Studio, load the model you want to chat with
+2. Open the **Developer** tab and start the server (default: port 1234)
+3. Optionally enable "Run server on startup" so it survives reboots
 
-```bash
-ollama pull llama3.1   # or any model you like
-ollama serve           # usually already running as a service
-```
+Leave "Serve on Local Network" **off** — the bot runs on the same PC, so the
+server only needs to listen on localhost.
 
-For LM Studio: load a model and start the local server (default port 1234).
+The bot auto-detects the loaded model, so you don't need to configure a model
+name — swap models in LM Studio whenever you like.
+
+(Using Ollama or llama.cpp instead? Just point `LLM_BASE_URL` at it and set
+`LLM_MODEL`.)
 
 ### 4. Configure and run the bot
 
@@ -52,7 +59,7 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 cp .env.example .env             # Windows: copy .env.example .env
-# edit .env: set TELEGRAM_BOT_TOKEN, ALLOWED_USER_IDS, LLM_MODEL
+# edit .env: set TELEGRAM_BOT_TOKEN and ALLOWED_USER_IDS
 
 python bot.py
 ```
@@ -93,7 +100,10 @@ Then `sudo systemctl enable --now telegram-llm-bot`.
 ## Security notes
 
 - The auth check happens **before** anything is sent to the LLM — strangers
-  who find your bot get no response and never touch your model.
+  who find your bot get no response and never touch your model. Unauthorized
+  attempts are logged with the sender's user ID.
+- Group/channel messages are ignored entirely; the bot only answers you in a
+  private chat.
 - Keep `.env` private; the bot token lets anyone impersonate your bot
   (it's gitignored here). If it leaks, revoke it with BotFather's `/revoke`.
 - The bot makes outbound connections only (to Telegram and to localhost);
