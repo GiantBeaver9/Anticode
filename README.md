@@ -73,6 +73,39 @@ Message your bot on Telegram — it should reply using your local model.
 | `/start` | Sanity check that the bot is alive |
 | `/reset` | Clear the conversation history     |
 
+## Pushing updates to yourself from other services (Azure Functions, cron, CI…)
+
+Receiving and sending are separate concerns in the Telegram Bot API:
+
+- **Receiving** (long polling) — only ONE process may do this per token. That's
+  the bot on your PC.
+- **Sending** — anything, anywhere, may send with the same token. It does not
+  interfere with the PC bot's polling, and messages land in the same chat.
+
+So a cloud service like an Azure Function doesn't need any access to your PC
+to message you — it just calls the Telegram API directly:
+
+```bash
+curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+  -d chat_id="$TELEGRAM_CHAT_ID" \
+  --data-urlencode text="☀️ Your daily digest..."
+```
+
+`TELEGRAM_CHAT_ID` is just your numeric user ID (same value as
+`ALLOWED_USER_IDS`) — for one-on-one chats, chat ID == user ID. The only
+prerequisite is that you've messaged the bot at least once (`/start`), since
+bots can't initiate chats with users who never contacted them.
+
+A complete Azure Functions timer-trigger example lives in
+[`azure/daily_digest_function.py`](azure/daily_digest_function.py). Store the
+token in the Function App's settings or as a Key Vault reference — never in
+code.
+
+Note: messages sent this way are one-way notifications. If you *reply* to a
+digest in the chat, your reply goes to the PC bot (it's the one polling), so
+your local LLM answers — which is usually exactly what you want ("summarize
+item 3 for me").
+
 ## Run it in the background
 
 **Linux (systemd)** — create `/etc/systemd/system/telegram-llm-bot.service`:
