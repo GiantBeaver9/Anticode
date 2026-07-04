@@ -23,9 +23,13 @@ def send_telegram(text: str) -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    # Telegram rejects messages over 4096 chars — send in chunks.
+    # Telegram rejects messages over 4096 chars, counted in UTF-16 code units
+    # (emoji count as 2) — send in chunks measured the same way.
     while text:
-        chunk, text = text[:TELEGRAM_MESSAGE_LIMIT], text[TELEGRAM_MESSAGE_LIMIT:]
+        chunk = text[:TELEGRAM_MESSAGE_LIMIT]
+        while len(chunk.encode("utf-16-le")) // 2 > TELEGRAM_MESSAGE_LIMIT:
+            chunk = chunk[:-1]
+        text = text[len(chunk):]
         resp = requests.post(url, json={"chat_id": chat_id, "text": chunk}, timeout=30)
         resp.raise_for_status()
 

@@ -102,12 +102,19 @@ async def query_llm(messages: list[dict[str, str]]) -> str:
 
 
 def split_message(text: str, limit: int = TELEGRAM_MESSAGE_LIMIT) -> list[str]:
-    """Split text into Telegram-sized chunks, preferring newline boundaries."""
+    """Split text into Telegram-sized chunks, preferring newline boundaries.
+
+    Telegram counts the limit in UTF-16 code units, not codepoints — emoji
+    count as 2 — so we measure in UTF-16 too.
+    """
     chunks = []
-    while len(text) > limit:
-        cut = text.rfind("\n", 0, limit)
+    while len(text.encode("utf-16-le")) // 2 > limit:
+        window = text[:limit]  # UTF-16 length >= len(), so this can't be short
+        while len(window.encode("utf-16-le")) // 2 > limit:
+            window = window[:-1]
+        cut = window.rfind("\n")
         if cut <= 0:
-            cut = limit
+            cut = len(window)
         chunks.append(text[:cut])
         text = text[cut:].lstrip("\n")
     if text:
