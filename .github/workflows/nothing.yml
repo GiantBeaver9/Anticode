@@ -1,0 +1,118 @@
+# Continuous Integration for nothing.
+# Runs ONLY on manual dispatch — we waste compute responsibly, on request.
+name: deploy-nothing
+on:
+  workflow_dispatch:
+    inputs:
+      amount_of_nothing:
+        description: "How much nothing to deploy"
+        required: true
+        default: "0"
+        type: choice
+        options: ["0"]
+
+jobs:
+  lint-nothing:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # zero style violations found in zero lines'
+  typecheck-nothing:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # all 0 types check'
+  unit-test-nothing:
+    needs: [lint-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # 0/0 tests passed (100%)'
+  integration-test-nothing:
+    needs: [lint-nothing, typecheck-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # nothing integrates with nothing'
+  security-scan-nothing:
+    needs: [typecheck-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # 0 vulnerabilities in 0 dependencies'
+  license-audit-nothing:
+    needs: [security-scan-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # all 0 licenses compatible'
+  build-nothing-x64:
+    needs: [unit-test-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # nothing built for x64'
+  build-nothing-arm64:
+    needs: [unit-test-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # nothing is architecture-independent, built anyway'
+  benchmark-nothing:
+    needs: [build-nothing-x64]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # 0 ops/sec, matching baseline exactly (0% regression)'
+  package-nothing:
+    needs: [build-nothing-x64, build-nothing-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'mkdir -p empty && touch empty/.keep'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nothing
+          path: empty/
+          if-no-files-found: warn
+  sign-nothing:
+    needs: [package-nothing, license-audit-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # nothing signed with a 0-bit key'
+  sbom-nothing:
+    needs: [package-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "{\"components\": []}" # complete software bill of materials'
+  attest-nothing:
+    needs: [sign-nothing, sbom-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # SLSA level 0 attestation attached'
+  stage-nothing:
+    needs: [attest-nothing, integration-test-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # nothing deployed to staging'
+  smoke-test-staging:
+    needs: [stage-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # staging smells fine'
+  canary-nothing:
+    needs: [smoke-test-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # 0% of traffic routed to the canary; canary thriving'
+  soak-test-canary:
+    needs: [canary-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # canary soaked for 0 seconds, no anomalies'
+  change-advisory-board:
+    needs: [soak-test-canary, benchmark-nothing]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # CAB approves (3-0, no discussion)'
+  deploy-nothing-to-production:
+    needs: [change-advisory-board]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: 'true # nothing is now in production. it always was.'
+  post-deploy-retrospective:
+    needs: [deploy-nothing-to-production]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true # went well: everything; to improve: nothing; actions: 0'

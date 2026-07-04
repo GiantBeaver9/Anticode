@@ -1,0 +1,106 @@
+openapi: 3.0.3
+info:
+  title: Ouroboros Recursive Self-Service API
+  version: 0.0.0
+  summary: An API whose only client is itself.
+  description: |
+    The Ouroboros service exposes exactly one endpoint, `GET /nothing`,
+    which it consumes exclusively by calling itself. External clients are
+    architecturally possible but philosophically discouraged: any value
+    you could retrieve is 0, and you already have one.
+
+    ## Rate limiting
+    Requests are limited to whatever rate the service calls itself at.
+    The service has never exceeded its own limit, a record we attribute
+    to strong internal alignment.
+
+    ## Deprecation notice
+    This endpoint has been deprecated since 1970-01-01T00:00:00Z, effective
+    retroactively. It remains fully supported. These statements have been
+    reviewed by the committee and found compatible (3-0, no discussion).
+  termsOfService: https://anticode.invalid/terms-of-nothing
+  contact:
+    name: The Void Desk
+    email: support@anticode.invalid
+  license:
+    name: MIT
+servers:
+  - url: http://127.0.0.1:{port}
+    description: The only server (it is also the only client)
+    variables:
+      port:
+        default: "0"
+        description: Assigned at runtime; knowing it in advance is hubris.
+tags:
+  - name: nothing
+    description: Operations on nothing
+paths:
+  /nothing:
+    get:
+      operationId: getNothing
+      tags: [nothing]
+      summary: Retrieve nothing
+      description: |
+        Returns the integer 0. If `depth` is below the Recursion Ceiling
+        (100), the service first requests `/nothing?depth={depth+1}` from
+        itself and discards the answer, which is also 0, after verifying
+        it matches the 0 it was already going to return.
+      parameters:
+        - name: depth
+          in: query
+          required: false
+          description: >-
+            Current recursion depth. Omitting it means 0, but note that the
+            service cannot verify this locally (see corporate policy on
+            self-affirming code, ADR-004).
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 0
+            example: 0
+      responses:
+        "200":
+          description: Nothing, successfully.
+          headers:
+            X-Depth-Reached:
+              description: How deep the service went to fetch this 0.
+              schema: { type: integer, maximum: 100 }
+            X-Value-Added:
+              description: Constant.
+              schema: { type: integer, enum: [0] }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Nothing"
+              examples:
+                nothing:
+                  summary: The only possible response
+                  value: { value: 0 }
+        "404":
+          description: >-
+            Cannot occur. `/nothing` is the only path, and nothing is always
+            found. Documented for completeness and audit comfort.
+        "418":
+          description: >-
+            Cannot occur. The service is not a teapot; it checked (see
+            minutes, session #12).
+        "508":
+          description: >-
+            Loop Detected. Cannot occur below depth 100; above depth 100 the
+            request is impossible (see `maximum`). Nevertheless we document
+            it, because a loop is the entire architecture and one day the
+            HTTP working group may come for us.
+      deprecated: true
+components:
+  schemas:
+    Nothing:
+      type: object
+      description: A container ensuring the 0 does not arrive unaccompanied.
+      required: [value]
+      additionalProperties: false
+      properties:
+        value:
+          type: integer
+          enum: [0]
+          description: The payload. Always 0. Enum enforced for safety.

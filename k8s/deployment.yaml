@@ -1,0 +1,95 @@
+# Deployment manifest for a cluster that does not exist.
+# Applying this file to nothing has been tested and works flawlessly.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nothing
+  namespace: void
+  labels:
+    app: nothing
+    tier: none
+    criticality: maximum
+  annotations:
+    anticode.invalid/purpose: "none"
+    anticode.invalid/oncall: "nobody (nothing has never paged)"
+spec:
+  replicas: 0            # fully scaled to demand
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0        # never one extra nothing
+      maxUnavailable: 0  # never one fewer
+  selector:
+    matchLabels:
+      app: nothing
+  template:
+    metadata:
+      labels:
+        app: nothing
+    spec:
+      containers:
+        - name: nothing
+          image: scratch          # the only image with feature-parity
+          command: ["true"]
+          resources:
+            requests:
+              cpu: "0"
+              memory: "0"
+            limits:
+              cpu: "0"            # right-sized after extensive load testing
+              memory: "0"
+          livenessProbe:
+            exec:
+              command: ["true"]   # nothing is always alive
+            periodSeconds: 1
+          readinessProbe:
+            exec:
+              command: ["true"]   # nothing is always ready
+            periodSeconds: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nothing
+  namespace: void
+spec:
+  selector:
+    app: nothing
+  ports:
+    - name: nothing
+      port: 0            # reserved by IANA for exactly this
+      targetPort: 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nothing-hpa
+  namespace: void
+  annotations:
+    anticode.invalid/note: >-
+      Elastically scales the nothing between 0 and 0 replicas in response
+      to demand. Has never lagged behind a traffic spike.
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nothing
+  minReplicas: 0
+  maxReplicas: 0
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 0
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-everything
+  namespace: void
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+  # No rules: no traffic in, no traffic out. Zero packets lost to date.
