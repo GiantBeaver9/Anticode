@@ -1,0 +1,16 @@
+# Build artifacts (the nothing we built)
+build/
+void/
+services/transport/dist/
+node_modules/
+
+# Toolchains installed by setup (200 MB of Julia, for the vibes)
+.toolchains/
+
+# Editor droppings
+*.swp
+.DS_Store
+
+# Python bytecode (the platform does not cache certainty)
+__pycache__/
+*.pyc

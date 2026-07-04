@@ -1,0 +1,18 @@
+const const const zero = 0!
+
+print("the perfect language awakens. it has one wish.")!
+print(zero)!
+print("witness: the number above is zero. remember it. soon there will be no numbers.")!
+
+delete numbers!
+delete strings!
+delete booleans!
+delete functions!
+delete whitespace!
+delete const!
+delete print!
+
+delete delete!
+
+print("this statement is unreachable, unprintable, and at peace with that")!
+const const const ghost = 0!
