@@ -12,6 +12,12 @@ sections, switched from the top nav:
 A third nav item, **Chat ↗**, links out to the companion LocalLLM app; set its
 URL with `VITE_CHAT_URL` at build time (defaults to `http://localhost:3000`).
 
+### Let your LLM act on the calendar
+
+`mcp/` is an MCP server that exposes the calendar and projects as tools your
+local LLM can call — so you can just say *"add dentist Thursday 3pm"* in chat.
+See [`mcp/README.md`](mcp/README.md) for LM Studio setup.
+
 ## Projects tracker
 
 Each **project** has headline figures (hours, % complete, bugs, first-pass
