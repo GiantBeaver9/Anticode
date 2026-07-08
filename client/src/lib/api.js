@@ -52,4 +52,16 @@ export const api = {
   addUpdate: (projectId, data) =>
     request("POST", `/api/projects/${projectId}/updates`, data),
   deleteUpdate: (id) => request("DELETE", `/api/updates/${id}`),
+
+  // calendar
+  listEvents: (from, to) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    return request("GET", `/api/events${qs ? `?${qs}` : ""}`);
+  },
+  createEvent: (data) => request("POST", "/api/events", data),
+  updateEvent: (id, data) => request("PUT", `/api/events/${id}`, data),
+  deleteEvent: (id) => request("DELETE", `/api/events/${id}`),
 };

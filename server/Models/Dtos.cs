@@ -24,3 +24,15 @@ public record UpdateRequest(
     int? BugsFound,
     int? BugsFixed
 );
+
+// ----- Calendar -----
+public record CalendarEventRequest(
+    string? Title,
+    string? Notes,
+    string? Location,
+    string? Attendees,
+    DateTime? StartsAt,
+    DateTime? EndsAt,
+    bool? AllDay,
+    string? Color
+);

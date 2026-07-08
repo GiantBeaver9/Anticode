@@ -73,55 +73,39 @@
     await api.deleteUpdate(updateId);
     await load();
   }
-
-  async function logout() {
-    try {
-      await api.logout();
-    } finally {
-      dispatch("unauthorized");
-    }
-  }
 </script>
 
-<div class="page">
-  <div class="topbar">
-    <div class="brand">
-      <h1>Anticode</h1>
-      <span class="sub">project assessment</span>
-    </div>
-    <div class="topbar-actions">
-      <button class="btn primary" on:click={() => (creating = true)}>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
-        New project
-      </button>
-      <button class="btn ghost" on:click={logout}>Sign out</button>
-    </div>
-  </div>
-
-  {#if loading}
-    <div class="state">Loading…</div>
-  {:else if error}
-    <div class="state error">{error}</div>
-  {:else if projects.length === 0}
-    <div class="state">No projects yet. Create your first one to start tracking.</div>
-  {:else}
-    <div class="projects">
-      {#each projects as p (p.id)}
-        <ProjectRow
-          project={p}
-          open={expanded.has(p.id)}
-          on:toggle={() => toggle(p.id)}
-          on:edit={() => (editing = p)}
-          on:delete={() => deleteProject(p)}
-          on:addUpdate={() => (addingUpdate = p)}
-          on:deleteUpdate={(e) => deleteUpdate(e.detail)}
-        />
-      {/each}
-    </div>
-  {/if}
+<div class="view-bar">
+  <h2 class="view-title">Projects</h2>
+  <button class="btn primary" on:click={() => (creating = true)}>
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+    New project
+  </button>
 </div>
+
+{#if loading}
+  <div class="state">Loading…</div>
+{:else if error}
+  <div class="state error">{error}</div>
+{:else if projects.length === 0}
+  <div class="state">No projects yet. Create your first one to start tracking.</div>
+{:else}
+  <div class="projects">
+    {#each projects as p (p.id)}
+      <ProjectRow
+        project={p}
+        open={expanded.has(p.id)}
+        on:toggle={() => toggle(p.id)}
+        on:edit={() => (editing = p)}
+        on:delete={() => deleteProject(p)}
+        on:addUpdate={() => (addingUpdate = p)}
+        on:deleteUpdate={(e) => deleteUpdate(e.detail)}
+      />
+    {/each}
+  </div>
+{/if}
 
 {#if creating}
   <Modal title="New project" on:close={() => (creating = false)}>

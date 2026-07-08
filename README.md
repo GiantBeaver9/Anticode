@@ -1,8 +1,18 @@
-# Anticode — Personal Project Assessment
+# Anticode — Personal Intranet
 
-A small, self-hostable app for tracking your own projects and their progress
-over time. **C# (ASP.NET Core) backend + Svelte frontend**, single-password
-auth, SQLite storage, no external services.
+A small, self-hostable home intranet. **C# (ASP.NET Core) backend + Svelte
+frontend**, single-password auth, SQLite storage, no external services. Two
+sections, switched from the top nav:
+
+- **Calendar** — a private month calendar for you and your family. Events carry
+  a time (or all-day), location, who's involved, a colour, and notes. Nothing
+  leaves your server.
+- **Projects** — the original project-assessment tracker (described below).
+
+A third nav item, **Chat ↗**, links out to the companion LocalLLM app; set its
+URL with `VITE_CHAT_URL` at build time (defaults to `http://localhost:3000`).
+
+## Projects tracker
 
 Each **project** has headline figures (hours, % complete, bugs, first-pass
 status). Every project row expands with a dropdown arrow to reveal a timeline of
@@ -53,6 +63,23 @@ In production the backend serves the compiled Svelte app out of
 
 Adding an update also rolls its percent-complete and hour estimates up onto the
 parent project, so the project row always shows the latest status.
+
+**CalendarEvent**
+| field | type | notes |
+|---|---|---|
+| `id` | guid | |
+| `title` | text | required |
+| `notes` | text | free-form |
+| `location` | text | |
+| `attendees` | text | comma-separated people, e.g. "Mum, Ava" |
+| `startsAt` / `endsAt` | timestamp | UTC instants (client renders local) |
+| `allDay` | bool | ignore the time components when true |
+| `color` | text | hex tint for the calendar grid |
+| `createdAt` / `updatedAt` | timestamp | |
+
+Calendar API (all require the session):
+`GET /api/events?from=<iso>&to=<iso>` (overlapping the window) ·
+`POST /api/events` · `PUT /api/events/{id}` · `DELETE /api/events/{id}`.
 
 ## Prerequisites
 

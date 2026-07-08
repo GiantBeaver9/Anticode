@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "./lib/api.js";
   import Login from "./lib/Login.svelte";
-  import Dashboard from "./lib/Dashboard.svelte";
+  import Shell from "./lib/Shell.svelte";
 
   let ready = false;
   let authed = false;
@@ -24,7 +24,7 @@
 {#if !ready}
   <div class="page"><div class="state">Loading…</div></div>
 {:else if authed}
-  <Dashboard on:unauthorized={() => (authed = false)} />
+  <Shell on:unauthorized={() => (authed = false)} />
 {:else}
   <Login on:authenticated={() => (authed = true)} />
 {/if}

@@ -220,6 +220,95 @@ app.MapDelete("/api/updates/{id:guid}", async (Guid id, AppDbContext db) =>
     return Results.Ok(new { ok = true });
 }).RequireAuthorization();
 
+// ============================ CALENDAR ============================
+var events = app.MapGroup("/api/events").RequireAuthorization();
+
+// List events, optionally bounded to a [from, to] window. The window matches
+// any event that overlaps it, so multi-day events show up in every month they
+// touch. Both bounds are optional.
+events.MapGet("/", async (AppDbContext db, DateTime? from, DateTime? to) =>
+{
+    var q = db.CalendarEvents.AsQueryable();
+    if (from is not null) q = q.Where(e => e.EndsAt >= from);
+    if (to is not null) q = q.Where(e => e.StartsAt <= to);
+    var list = await q.OrderBy(e => e.StartsAt).ToListAsync();
+    return Results.Ok(list);
+});
+
+// Create an event.
+events.MapPost("/", async (CalendarEventRequest body, AppDbContext db) =>
+{
+    var title = (body.Title ?? string.Empty).Trim();
+    if (string.IsNullOrEmpty(title))
+        return Results.Json(new { error = "Event title is required." }, statusCode: 400);
+    if (body.StartsAt is null)
+        return Results.Json(new { error = "Event start time is required." }, statusCode: 400);
+
+    var starts = body.StartsAt.Value;
+    var ends = body.EndsAt ?? starts;
+    if (ends < starts) ends = starts;
+
+    var now = DateTime.UtcNow;
+    var ev = new CalendarEvent
+    {
+        Id = Guid.NewGuid(),
+        Title = title,
+        Notes = body.Notes ?? string.Empty,
+        Location = body.Location ?? string.Empty,
+        Attendees = body.Attendees ?? string.Empty,
+        StartsAt = starts,
+        EndsAt = ends,
+        AllDay = body.AllDay ?? false,
+        Color = string.IsNullOrWhiteSpace(body.Color) ? "#5b9dff" : body.Color!.Trim(),
+        CreatedAt = now,
+        UpdatedAt = now,
+    };
+
+    db.CalendarEvents.Add(ev);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/events/{ev.Id}", ev);
+});
+
+// Update an event.
+events.MapPut("/{id:guid}", async (Guid id, CalendarEventRequest body, AppDbContext db) =>
+{
+    var ev = await db.CalendarEvents.FindAsync(id);
+    if (ev is null)
+        return Results.Json(new { error = "Event not found." }, statusCode: 404);
+
+    if (body.Title is not null)
+    {
+        var title = body.Title.Trim();
+        if (string.IsNullOrEmpty(title))
+            return Results.Json(new { error = "Event title is required." }, statusCode: 400);
+        ev.Title = title;
+    }
+    if (body.Notes is not null) ev.Notes = body.Notes;
+    if (body.Location is not null) ev.Location = body.Location;
+    if (body.Attendees is not null) ev.Attendees = body.Attendees;
+    if (body.StartsAt is not null) ev.StartsAt = body.StartsAt.Value;
+    if (body.EndsAt is not null) ev.EndsAt = body.EndsAt.Value;
+    if (body.AllDay is not null) ev.AllDay = body.AllDay.Value;
+    if (body.Color is not null && !string.IsNullOrWhiteSpace(body.Color)) ev.Color = body.Color.Trim();
+    if (ev.EndsAt < ev.StartsAt) ev.EndsAt = ev.StartsAt;
+    ev.UpdatedAt = DateTime.UtcNow;
+
+    await db.SaveChangesAsync();
+    return Results.Ok(ev);
+});
+
+// Delete an event.
+events.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
+{
+    var ev = await db.CalendarEvents.FindAsync(id);
+    if (ev is null)
+        return Results.Json(new { error = "Event not found." }, statusCode: 404);
+
+    db.CalendarEvents.Remove(ev);
+    await db.SaveChangesAsync();
+    return Results.Ok(new { ok = true });
+});
+
 // SPA fallback: any non-API route serves index.html so client routing works.
 app.MapFallbackToFile("index.html");
 

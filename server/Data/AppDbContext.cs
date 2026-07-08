@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectUpdate> Updates => Set<ProjectUpdate>();
+    public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,6 +24,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ProjectUpdate>(e =>
         {
             e.HasIndex(u => u.ProjectId);
+        });
+
+        modelBuilder.Entity<CalendarEvent>(e =>
+        {
+            e.HasIndex(c => c.StartsAt);
+            e.HasIndex(c => c.EndsAt);
         });
     }
 }
